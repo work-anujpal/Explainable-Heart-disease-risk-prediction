@@ -1,0 +1,26 @@
+START HERE — BEGINNER CHECKLIST
+
+1. Install Python 3.10+ and VS Code.
+2. Open this project folder in VS Code.
+3. Open Terminal.
+4. Run:
+   py -m venv .venv
+   .venv\Scripts\activate
+   pip install -r requirements.txt
+
+5. Download the dataset:
+   python scripts/download_data.py
+
+6. Train the models:
+   python scripts/train_model.py
+
+7. Start backend in Terminal 1:
+   uvicorn app.main:app --reload
+
+8. Start frontend in Terminal 2:
+   .venv\Scripts\activate
+   streamlit run frontend/streamlit_app.py
+
+9. Open the Streamlit page in your browser.
+
+10. Read README.md before pushing to GitHub.

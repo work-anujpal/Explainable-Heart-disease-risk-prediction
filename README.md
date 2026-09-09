@@ -184,32 +184,3 @@ The application still works without Ollama; a deterministic template explanation
   "thal": 2
 }
 ```
-
-## GitHub first push
-
-After creating an empty GitHub repository with the same project name:
-
-```powershell
-git init
-git add .
-git commit -m "Initial project setup"
-git branch -M main
-git remote add origin https://github.com/YOUR-USERNAME/explainable-heart-disease-risk-prediction.git
-git push -u origin main
-```
-
-Replace `YOUR-USERNAME` with your GitHub username.
-
-## Academic note
-
-Before evaluation or viva, make sure you can explain:
-
-1. What each of the 13 inputs means.
-2. Why Logistic Regression is a useful baseline.
-3. Why Random Forest/XGBoost are appropriate for tabular data.
-4. Difference between training metrics and cross-validation metrics.
-5. What SHAP values mean.
-6. Why LIME is used as a secondary cross-check.
-7. Why this application is not a medical diagnosis.
-=======
-

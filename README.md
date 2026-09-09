@@ -211,3 +211,5 @@ Before evaluation or viva, make sure you can explain:
 5. What SHAP values mean.
 6. Why LIME is used as a secondary cross-check.
 7. Why this application is not a medical diagnosis.
+=======
+

@@ -107,20 +107,35 @@ def main():
     comparison = {}
 
     for name, model in models.items():
+
+        # Cross-validation pipeline prevents preprocessing data leakage.
+        # The imputer and scaler are fitted independently inside each CV fold.
+        cv_pipeline = Pipeline([
+            ("preprocessor", Pipeline([
+                ("imputer", SimpleImputer(strategy="median")),
+                ("scaler", StandardScaler()),
+            ])),
+            ("model", model),
+        ])
+
         cv_scores = cross_validate(
-            model,
-            X_train_scaled,
+            cv_pipeline,
+            X_train,
             y_train,
             cv=cv,
             scoring={"f1": "f1", "roc_auc": "roc_auc"},
             n_jobs=-1,
         )
+
+        # Holdout evaluation uses preprocessing fitted only on the training set.
         model.fit(X_train_scaled, y_train)
         pred = model.predict(X_test_scaled)
         proba = model.predict_proba(X_test_scaled)[:, 1]
+
         metrics = metric_dict(y_test, pred, proba)
         metrics["cv_f1_mean"] = float(np.mean(cv_scores["test_f1"]))
         metrics["cv_roc_auc_mean"] = float(np.mean(cv_scores["test_roc_auc"]))
+
         comparison[name] = metrics
 
     # The project documents recommend a tree model for deployment so SHAP can use

@@ -10,7 +10,7 @@ A Third Year Data Science project that predicts **High / Low heart-disease risk*
 - Input validation
 - Data preprocessing with `StandardScaler`
 - Model comparison: Logistic Regression, Random Forest, XGBoost
-- Deployment model selected from Random Forest / XGBoost using cross-validated F1 and ROC-AUC
+- Deployment model selected between Random Forest and XGBoost using cross-validated F1 and ROC-AUC, with Random Forest chosen for the explainability pipeline
 - High/Low risk prediction with probability
 - SHAP local feature contributions
 - LIME cross-check
@@ -111,8 +111,7 @@ metadata.json
 background.joblib
 ```
 
-It prints Accuracy, Precision, Recall, F1, ROC-AUC and cross-validation scores for the candidate models.
-
+For deployment, the project compares the tree-based models (Random Forest and XGBoost) using cross-validation metrics. Random Forest is selected because it achieved a slightly higher cross-validated F1-score than XGBoost and the strongest holdout ROC-AUC among the tree-based candidates. This also keeps the deployed model compatible with the Tree SHAP explainability pipeline. Logistic Regression remains part of the model comparison but is not selected for deployment in this implementation.
 ## 4. Start the FastAPI backend
 
 Terminal 1:

@@ -26,15 +26,40 @@ st.warning(
 with st.sidebar:
     st.header("Patient Parameters")
     age = st.number_input("Age", min_value=18, max_value=100, value=55)
-    sex = st.selectbox("Sex", [0, 1], format_func=lambda x: "Female (0)" if x == 0 else "Male (1)")
+    sex = st.selectbox(
+        "Sex",
+        [0, 1],
+        format_func=lambda x: "Female (0)" if x == 0 else "Male (1)",
+    )
     cp = st.selectbox("Chest Pain Type (cp)", [0, 1, 2, 3])
-    trestbps = st.number_input("Resting Blood Pressure", min_value=70, max_value=250, value=140)
-    chol = st.number_input("Serum Cholesterol", min_value=80, max_value=700, value=250)
+    trestbps = st.number_input(
+        "Resting Blood Pressure",
+        min_value=70,
+        max_value=250,
+        value=140,
+    )
+    chol = st.number_input(
+        "Serum Cholesterol",
+        min_value=80,
+        max_value=700,
+        value=250,
+    )
     fbs = st.selectbox("Fasting Blood Sugar > 120 mg/dl", [0, 1])
     restecg = st.selectbox("Resting ECG", [0, 1, 2])
-    thalach = st.number_input("Maximum Heart Rate", min_value=50, max_value=230, value=150)
+    thalach = st.number_input(
+        "Maximum Heart Rate",
+        min_value=50,
+        max_value=230,
+        value=150,
+    )
     exang = st.selectbox("Exercise-Induced Angina", [0, 1])
-    oldpeak = st.number_input("ST Depression (oldpeak)", min_value=-3.0, max_value=10.0, value=1.2, step=0.1)
+    oldpeak = st.number_input(
+        "ST Depression (oldpeak)",
+        min_value=-3.0,
+        max_value=10.0,
+        value=1.2,
+        step=0.1,
+    )
     slope = st.selectbox("ST Segment Slope", [0, 1, 2])
     ca = st.selectbox("Number of Major Vessels", [0, 1, 2, 3, 4])
     thal = st.selectbox("Thalassemia", [0, 1, 2, 3])
@@ -66,7 +91,9 @@ with tab_predict:
     if st.button("Predict Risk", type="primary"):
         try:
             response = requests.post(
-                f"{API_BASE_URL}/predict", json=payload, timeout=30
+                f"{API_BASE_URL}/predict",
+                json=payload,
+                timeout=30,
             )
             response.raise_for_status()
             result = response.json()
@@ -81,13 +108,17 @@ with tab_predict:
 
             shap_df = pd.DataFrame(result["shap"])
             shap_df = shap_df.sort_values("contribution")
+
             fig = px.bar(
                 shap_df,
                 x="contribution",
                 y="feature",
                 orientation="h",
                 title="SHAP Feature Contributions",
-                labels={"contribution": "SHAP contribution", "feature": "Feature"},
+                labels={
+                    "contribution": "SHAP contribution",
+                    "feature": "Feature",
+                },
             )
             st.plotly_chart(fig, use_container_width=True)
 
@@ -109,6 +140,7 @@ with tab_predict:
                 + json.dumps(payload, indent=2)
                 + "\n"
             )
+
             st.download_button(
                 "Download prediction report (.txt)",
                 data=report_text,
@@ -126,21 +158,116 @@ with tab_predict:
     if st.button("Run SHAP + LIME Cross-Check"):
         try:
             response = requests.post(
-                f"{API_BASE_URL}/explain", json=payload, timeout=60
+                f"{API_BASE_URL}/explain",
+                json=payload,
+                timeout=60,
             )
             response.raise_for_status()
             result = response.json()
-            st.subheader("LIME Cross-Check")
-            st.dataframe(pd.DataFrame(result["lime"]), use_container_width=True, hide_index=True)
+
+            st.subheader("SHAP + LIME Cross-Check")
+
+            st.write(
+                "SHAP and LIME are two different local explainability methods. "
+                "Features that appear as important in both methods provide a useful "
+                "cross-check of the model's explanation."
+            )
+
+            # -----------------------------
+            # SHAP TOP FEATURES
+            # -----------------------------
+            shap_df = pd.DataFrame(result["shap"])
+            shap_df["abs_contribution"] = shap_df["contribution"].abs()
+
+            shap_top = (
+                shap_df.sort_values(
+                    "abs_contribution",
+                    ascending=False,
+                )
+                .head(5)[["feature", "contribution", "direction"]]
+            )
+
+            # -----------------------------
+            # LIME TOP FEATURES
+            # -----------------------------
+            lime_df = pd.DataFrame(result["lime"])
+            lime_df["abs_weight"] = lime_df["weight"].abs()
+
+            lime_top = (
+                lime_df.sort_values(
+                    "abs_weight",
+                    ascending=False,
+                )
+                .head(5)[["rule", "weight"]]
+            )
+
+            # -----------------------------
+            # DISPLAY SIDE BY SIDE
+            # -----------------------------
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.markdown("**Top SHAP Features**")
+                st.dataframe(
+                    shap_top,
+                    use_container_width=True,
+                    hide_index=True,
+                )
+
+            with col2:
+                st.markdown("**Top LIME Features**")
+                st.dataframe(
+                    lime_top,
+                    use_container_width=True,
+                    hide_index=True,
+                )
+
+            # -----------------------------
+            # COMMON FEATURES
+            # -----------------------------
+            shap_features = set(shap_top["feature"])
+            lime_features = set(lime_top["rule"])
+
+            common_features = shap_features.intersection(lime_features)
+
+            st.markdown("**Common Important Features**")
+
+            if common_features:
+                st.success(
+                    "Both SHAP and LIME identified these important features: "
+                    + ", ".join(sorted(common_features))
+                )
+            else:
+                st.info(
+                    "No common features appeared in the top 5 results "
+                    "from both methods."
+                )
+
+            st.caption(
+                "SHAP and LIME can produce different contribution values or "
+                "directions because they use different explanation techniques."
+            )
+
         except requests.RequestException as exc:
             st.error(f"Explanation request failed: {exc}")
 
 with tab_compare:
     st.subheader("Model Comparison")
-    metadata_path = Path(__file__).resolve().parents[1] / "app" / "models" / "metadata.json"
+
+    metadata_path = (
+        Path(__file__).resolve().parents[1]
+        / "app"
+        / "models"
+        / "metadata.json"
+    )
+
     if metadata_path.exists():
-        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        metadata = json.loads(
+            metadata_path.read_text(encoding="utf-8")
+        )
+
         rows = []
+
         for model_name, metrics in metadata["comparison"].items():
             rows.append(
                 {
@@ -154,27 +281,54 @@ with tab_compare:
                     "CV ROC-AUC": metrics["cv_roc_auc_mean"],
                 }
             )
+
         comp = pd.DataFrame(rows)
-        st.dataframe(comp, use_container_width=True, hide_index=True)
+
+        st.dataframe(
+            comp,
+            use_container_width=True,
+            hide_index=True,
+        )
+
         fig = px.bar(
-            comp.melt(id_vars="Model", value_vars=["Accuracy", "F1", "ROC-AUC"]),
+            comp.melt(
+                id_vars="Model",
+                value_vars=["Accuracy", "F1", "ROC-AUC"],
+            ),
             x="Model",
             y="value",
             color="variable",
             barmode="group",
             title="Model Performance Comparison",
         )
-        st.plotly_chart(fig, use_container_width=True)
-        st.success(f"Selected deployment model: {metadata['deployed_model']}")
+
+        st.plotly_chart(
+            fig,
+            use_container_width=True,
+        )
+
+        st.success(
+            f"Selected deployment model: {metadata['deployed_model']}"
+        )
+
     else:
-        st.info("Train the models first with `python scripts/train_model.py`.")
+        st.info(
+            "Train the models first with "
+            "`python scripts/train_model.py`."
+        )
 
 with tab_history:
     st.subheader("Prediction History")
+
     try:
-        response = requests.get(f"{API_BASE_URL}/history?limit=100", timeout=10)
+        response = requests.get(
+            f"{API_BASE_URL}/history?limit=100",
+            timeout=10,
+        )
         response.raise_for_status()
+
         items = response.json()["items"]
+
         if items:
             history = pd.DataFrame(
                 [
@@ -187,20 +341,31 @@ with tab_history:
                     for x in items
                 ]
             )
-            st.dataframe(history, use_container_width=True, hide_index=True)
+
+            st.dataframe(
+                history,
+                use_container_width=True,
+                hide_index=True,
+            )
+
             st.download_button(
                 "Export history as CSV",
                 data=history.to_csv(index=False).encode("utf-8"),
                 file_name="prediction_history.csv",
                 mime="text/csv",
             )
+
         else:
             st.info("No predictions have been saved yet.")
+
     except requests.RequestException:
-        st.info("Start the FastAPI backend to view prediction history.")
+        st.info(
+            "Start the FastAPI backend to view prediction history."
+        )
 
 with tab_about:
     st.subheader("About the Project")
+
     st.write(
         """
         This project demonstrates an end-to-end explainable machine-learning workflow:
@@ -209,6 +374,7 @@ with tab_about:
         Streamlit, and SQLite history.
         """
     )
+
     st.markdown(
         "**Important:** the output is a model estimate for educational demonstration, "
         "not a medical diagnosis."
